@@ -1,0 +1,22 @@
+# Xcode / Apple
+DerivedData/
+build/
+*.xcarchive
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Xcode user data
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcuserstate
+
+# Generated project
+MengguiDorm.xcodeproj
+
+# macOS
+.DS_Store
+
+# SwiftPM
+.build/
+Package.resolved
