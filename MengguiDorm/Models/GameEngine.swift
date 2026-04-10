@@ -366,8 +366,8 @@ class GameEngine: ObservableObject {
             let angle = Double(room.turrets.count) * (.pi / 2)
             let radius: CGFloat = 80
             let pos = CGPoint(
-                x: room.position.x + cos(angle) * radius,
-                y: room.position.y + sin(angle) * radius
+                x: room.position.x + CGFloat(Darwin.cos(angle)) * radius,
+                y: room.position.y + CGFloat(Darwin.sin(angle)) * radius
             )
             room.turrets.append(Turret(position: pos))
             
