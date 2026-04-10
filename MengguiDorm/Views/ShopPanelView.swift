@@ -30,7 +30,7 @@ struct ShopPanelView: View {
                         .background(Color.white.opacity(0.2))
                     
                     // 防御类
-                    shopSection(title: "防御", items: [.turret])
+                    shopSection(title: "防御", items: [.turret, .upgradeTurret])
                     
                     Divider()
                         .background(Color.white.opacity(0.2))

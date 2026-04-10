@@ -211,11 +211,11 @@ struct GameRoomView: View {
         ZStack {
             // 猛鬼身体
             Circle()
-                .fill(ghost.isFrozen ? Color.cyan.opacity(0.6) : Color.red.opacity(0.8))
-                .frame(width: 40, height: 40)
+                .fill(ghost.isFrozen ? Color.cyan.opacity(0.6) : ghost.kind.color.opacity(0.85))
+                .frame(width: ghost.kind == .tank ? 48 : 40, height: ghost.kind == .tank ? 48 : 40)
                 .overlay(
                     Circle()
-                        .stroke(Color.red, lineWidth: 2)
+                        .stroke(ghost.kind.color, lineWidth: 2)
                 )
             
             // 眼睛
@@ -245,6 +245,11 @@ struct GameRoomView: View {
                 .font(.caption2)
                 .foregroundColor(.white)
                 .offset(y: 28)
+
+            Text(ghost.kind.name)
+                .font(.caption2)
+                .foregroundColor(.white.opacity(0.85))
+                .offset(y: 42)
             
             // 冻结效果
             if ghost.isFrozen {

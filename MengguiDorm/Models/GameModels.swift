@@ -91,6 +91,7 @@ struct Ghost: Identifiable {
     var isFrozen: Bool
     var freezeEndTime: Date?
     var level: Int
+    var kind: GhostKind
     
     enum GhostState {
         case idle
@@ -98,18 +99,61 @@ struct Ghost: Identifiable {
         case attacking
         case dead
     }
+
+    enum GhostKind: CaseIterable {
+        case normal
+        case charger
+        case tank
+        case frostResistant
+
+        var name: String {
+            switch self {
+            case .normal: return "普通猛鬼"
+            case .charger: return "冲锋猛鬼"
+            case .tank: return "重甲猛鬼"
+            case .frostResistant: return "冰抗猛鬼"
+            }
+        }
+
+        var color: Color {
+            switch self {
+            case .normal: return .red
+            case .charger: return .orange
+            case .tank: return .purple
+            case .frostResistant: return .cyan
+            }
+        }
+    }
     
-    init(level: Int = 1) {
+    init(level: Int = 1, kind: GhostKind = .normal) {
         self.position = CGPoint(x: -100, y: -100)
-        self.maxHP = Double(level) * 200
+        self.kind = kind
+        self.level = level
+
+        switch kind {
+        case .normal:
+            self.maxHP = Double(level) * 200
+            self.attack = Double(level) * 10
+            self.speed = 30
+        case .charger:
+            self.maxHP = Double(level) * 150
+            self.attack = Double(level) * 12
+            self.speed = 48
+        case .tank:
+            self.maxHP = Double(level) * 320
+            self.attack = Double(level) * 14
+            self.speed = 22
+        case .frostResistant:
+            self.maxHP = Double(level) * 220
+            self.attack = Double(level) * 11
+            self.speed = 34
+        }
+
         self.hp = self.maxHP
-        self.attack = Double(level) * 10
-        self.speed = 30
         self.state = .idle
         self.targetRoomID = nil
         self.isFrozen = false
         self.freezeEndTime = nil
-        self.level = level
     }
     
     mutating func takeDamage(_ damage: Double) {
@@ -120,8 +164,15 @@ struct Ghost: Identifiable {
     }
     
     mutating func freeze(duration: TimeInterval) {
+        let actualDuration: TimeInterval
+        switch kind {
+        case .frostResistant:
+            actualDuration = max(0.8, duration * 0.4)
+        default:
+            actualDuration = duration
+        }
         isFrozen = true
-        freezeEndTime = Date().addingTimeInterval(duration)
+        freezeEndTime = Date().addingTimeInterval(actualDuration)
     }
     
     mutating func updateFreezeState() {
@@ -247,6 +298,7 @@ enum ShopItem: Identifiable, CaseIterable {
     case upgradeDoor
     case upgradeBed
     case turret
+    case upgradeTurret
     case freezeTrap
     case mineTrap
     case shieldTrap
@@ -256,6 +308,7 @@ enum ShopItem: Identifiable, CaseIterable {
         case .upgradeDoor: return "upgradeDoor"
         case .upgradeBed: return "upgradeBed"
         case .turret: return "turret"
+        case .upgradeTurret: return "upgradeTurret"
         case .freezeTrap: return "freezeTrap"
         case .mineTrap: return "mineTrap"
         case .shieldTrap: return "shieldTrap"
@@ -267,6 +320,7 @@ enum ShopItem: Identifiable, CaseIterable {
         case .upgradeDoor: return "升级大门"
         case .upgradeBed: return "升级床铺"
         case .turret: return "防御塔"
+        case .upgradeTurret: return "升级炮台"
         case .freezeTrap: return "冰冻陷阱"
         case .mineTrap: return "高爆地雷"
         case .shieldTrap: return "能量盾"
@@ -278,6 +332,7 @@ enum ShopItem: Identifiable, CaseIterable {
         case .upgradeDoor: return "door.left.hand.closed"
         case .upgradeBed: return "bed.double.fill"
         case .turret: return "scope"
+        case .upgradeTurret: return "dot.scope.and.hand.point.up.left.fill"
         case .freezeTrap: return "snowflake"
         case .mineTrap: return "burst.fill"
         case .shieldTrap: return "shield.fill"
@@ -289,6 +344,7 @@ enum ShopItem: Identifiable, CaseIterable {
         case .upgradeDoor: return .brown
         case .upgradeBed: return .green
         case .turret: return .orange
+        case .upgradeTurret: return .mint
         case .freezeTrap: return .cyan
         case .mineTrap: return .red
         case .shieldTrap: return .blue
@@ -300,6 +356,7 @@ enum ShopItem: Identifiable, CaseIterable {
         case .upgradeDoor: return "提升房门耐久并修复"
         case .upgradeBed: return "增加金币产出速度"
         case .turret: return "自动攻击范围内的猛鬼"
+        case .upgradeTurret: return "强化现有炮台伤害与射程"
         case .freezeTrap: return "冻结猛鬼数秒"
         case .mineTrap: return "造成巨额瞬间伤害"
         case .shieldTrap: return "临时保护房门"
@@ -311,6 +368,7 @@ enum ShopItem: Identifiable, CaseIterable {
         case .upgradeDoor: return 50 * level
         case .upgradeBed: return 40 * level
         case .turret: return 100 * level
+        case .upgradeTurret: return 80 * level
         case .freezeTrap: return 150
         case .mineTrap: return 300
         case .shieldTrap: return 200

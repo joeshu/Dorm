@@ -182,8 +182,19 @@ class GameEngine: ObservableObject {
     
     private func spawnGhost() {
         waveNumber += 1
-        ghost = Ghost(level: waveNumber)
-        lastEventText = "第 \(waveNumber) 波猛鬼出现"
+        let kind: Ghost.GhostKind
+        if waveNumber % 5 == 0 {
+            kind = .tank
+        } else if waveNumber % 3 == 0 {
+            kind = .charger
+        } else if waveNumber % 4 == 0 {
+            kind = .frostResistant
+        } else {
+            kind = .normal
+        }
+
+        ghost = Ghost(level: waveNumber, kind: kind)
+        lastEventText = "第 \(waveNumber) 波来袭：\(kind.name)"
         
         // 随机生成位置（房间外围）
         let spawnPoints = [
@@ -423,11 +434,9 @@ class GameEngine: ObservableObject {
             room.turrets.append(Turret(position: pos))
             lastEventText = "已建造第 \(room.turrets.count) 座炮台"
             
-        case .freezeTrap:
-            guard room.traps.count < GameConfig.maxTraps else { return false }
-            player.gold -= cost
-            room.traps.append(Trap(position: getTrapPosition(), type: .freeze(duration: 3)))
-            lastEventText = "已布置冰冻陷阱"
+        case .upgradeTurret:
+            guard !room.turrets.isEmpty else { return false }
+            guard upgradeStrongestTurret() else { return false }
             
         case .mineTrap:
             guard room.traps.count < GameConfig.maxTraps else { return false }
@@ -450,6 +459,7 @@ class GameEngine: ObservableObject {
         case .upgradeDoor: return room.doorLevel
         case .upgradeBed: return room.bedLevel
         case .turret: return room.turrets.count + 1
+        case .upgradeTurret: return (room.turrets.map(\.level).max() ?? 0) + 1
         default: return 1
         }
     }
@@ -461,6 +471,17 @@ class GameEngine: ObservableObject {
         return CGPoint(x: doorPos.x + offset, y: doorPos.y + 40)
     }
     
+    private func upgradeStrongestTurret() -> Bool {
+        guard !room.turrets.isEmpty else { return false }
+        let index = room.turrets.indices.max(by: { room.turrets[$0].level < room.turrets[$1].level }) ?? 0
+        let cost = room.turrets[index].upgradeCost
+        guard player.gold >= cost else { return false }
+        player.gold -= cost
+        room.turrets[index].upgrade()
+        lastEventText = "炮台升级到 Lv.\(room.turrets[index].level)"
+        return true
+    }
+
     // MARK: - 获取购买成本
     
     func getCost(for item: ShopItem) -> Int {
@@ -479,6 +500,8 @@ class GameEngine: ObservableObject {
             return room.bedLevel < 10
         case .turret:
             return room.turrets.count < GameConfig.maxTurrets
+        case .upgradeTurret:
+            return !room.turrets.isEmpty
         case .freezeTrap, .mineTrap, .shieldTrap:
             return room.traps.count < GameConfig.maxTraps
         default:
