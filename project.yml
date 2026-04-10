@@ -37,14 +37,14 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.joeshu.mengguidorm
         INFOPLIST_KEY_CFBundleName: MengguiDorm
-        INFOPLIST_KEY_CFBundleShortVersionString: $(MARKETING_VERSION)
-        INFOPLIST_KEY_CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        INFOPLIST_KEY_CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        INFOPLIST_KEY_CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
         LD_RUNPATH_SEARCH_PATHS:
-          - $(inherited)
-          - @executable_path/Frameworks
+          - "$(inherited)"
+          - "@executable_path/Frameworks"
     scheme:
       gatherCoverageData: false
       testTargets: []
