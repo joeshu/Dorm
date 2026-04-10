@@ -163,9 +163,9 @@ struct GameRoomView: View {
             VStack(spacing: 4) {
                 Image(systemName: "bed.double.fill")
                     .font(.system(size: 40))
-                    .foregroundColor(gameEngine.room.isNearBed ? .yellow : .green)
+                    .foregroundColor(gameEngine.nearBedText == "床边" ? .yellow : .green)
 
-                Text(gameEngine.room.isNearBed ? "床边" : "床 Lv.\(gameEngine.room.bedLevel)")
+                Text(gameEngine.nearBedText == "床边" ? "床边" : "床 Lv.\(gameEngine.room.bedLevel)")
                     .font(.caption2)
                     .foregroundColor(.white)
             }
@@ -407,13 +407,13 @@ struct GameRoomView: View {
         }) {
             HStack(spacing: 8) {
                 Image(systemName: gameEngine.player.isSleeping ? "person.fill" : "bed.double.fill")
-                Text(gameEngine.player.isSleeping ? "起床" : (gameEngine.room.isNearBed ? "上床" : "靠近床铺"))
+                Text(gameEngine.player.isSleeping ? "起床" : (gameEngine.nearBedText == "床边" ? "上床" : "靠近床铺"))
             }
             .font(.subheadline.weight(.semibold))
             .foregroundColor(.white)
             .frame(width: 118, height: 46)
             .background(
-                gameEngine.room.isNearBed ?
+                gameEngine.nearBedText == "床边" ?
                 (gameEngine.player.isSleeping ? Color.orange.gradient : Color.green.gradient) :
                 Color.gray.gradient
             )

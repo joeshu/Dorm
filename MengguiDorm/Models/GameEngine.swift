@@ -111,6 +111,16 @@ class GameEngine: ObservableObject {
     private var timeScale: Double {
         isFastForwardEnabled ? 2.0 : 1.0
     }
+
+    private var sleepGoldMultiplier: Double {
+        2.0
+    }
+
+    private var isNearBed: Bool {
+        let dx = player.position.x - room.bedPosition.x
+        let dy = player.position.y - room.bedPosition.y
+        return sqrt(dx * dx + dy * dy) <= 46
+    }
     
     private func update() {
         guard gameState == .playing else { return }
@@ -147,7 +157,7 @@ class GameEngine: ObservableObject {
                 guard let self = self, self.gameState == .playing else { return }
                 
                 if self.player.isSleeping {
-                    self.player.gold += Int(self.room.goldPerSecond * self.timeScale)
+                    self.player.gold += Int(self.room.goldPerSecond * self.sleepGoldMultiplier * self.timeScale)
                 }
             }
         }
@@ -418,6 +428,13 @@ class GameEngine: ObservableObject {
     }
 
     func toggleSleep() {
+        guard isNearBed else {
+            lastEventText = "请先移动到床边再睡觉"
+            return
+        }
+        player.isSleeping.toggle()
+        lastEventText = player.isSleeping ? "开始睡觉，金币 2 倍增长" : "已起床，可以专心布防"
+    }
         guard room.isNearBed else {
             lastEventText = "请先移动到床边再睡觉"
             return
@@ -586,6 +603,10 @@ class GameEngine: ObservableObject {
             return "准备中"
         }
         return ghost?.state == .dead ? "下一波准备中" : "第 \(max(waveNumber, 1)) 波"
+    }
+
+    var nearBedText: String {
+        isNearBed ? "床边" : "未靠近"
     }
 
     var currentDefenseScore: Int {
