@@ -3,58 +3,51 @@ import SwiftUI
 struct GameRoomView: View {
     @ObservedObject var gameEngine: GameEngine
     @State private var showShop = false
-    
+    @State private var isHUDExpanded = true
+    @State private var inspectedTurretID: UUID?
+
     var body: some View {
         ZStack {
-            // 游戏背景
             gameBackground
-            
-            // 游戏区域
             gameArea
-            
-            // UI 层
+
             VStack {
-                // 顶部状态栏
                 statusBar
                     .padding(.horizontal)
                     .padding(.top, 8)
-                
+
                 Spacer()
-                
-                // 底部控制栏
+
                 HStack {
-                    // 睡觉按钮
                     sleepButton
-                    
                     Spacer()
-                    
-                    // 商店切换按钮
                     shopToggleButton
                 }
                 .padding(.horizontal)
-                .padding(.bottom, 8)
+                .padding(.bottom, showShop ? 310 : 12)
+                .animation(.spring(response: 0.25, dampingFraction: 0.9), value: showShop)
             }
-            
-            // 商店面板
+
+            if let turret = inspectedTurret {
+                turretInspector(turret)
+            }
+
             if showShop {
-                shopPanel
-                    .transition(.move(edge: .trailing))
+                bottomShopDrawer
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
             }
-            
-            // 暂停按钮
+
             pauseButton
                 .position(x: 40, y: 50)
         }
     }
-    
-    // MARK: - 游戏背景
+
     private var gameBackground: some View {
         ZStack {
-            Color.black.opacity(0.9)
+            Color.black.opacity(0.92)
                 .ignoresSafeArea()
-            
-            // 网格背景
-            GeometryReader { geo in
+
+            GeometryReader { _ in
                 let gridSize: CGFloat = 40
                 Canvas { context, size in
                     for x in stride(from: 0, to: size.width, by: gridSize) {
@@ -81,95 +74,78 @@ struct GameRoomView: View {
             }
         }
     }
-    
-    // MARK: - 游戏区域
+
     private var gameArea: some View {
         GeometryReader { geo in
             ZStack {
-                // 房间
                 roomView
-                
-                // 炮台
+
                 ForEach(gameEngine.room.turrets) { turret in
+                    turretTapTarget(turret)
+                        .position(turret.position)
+
                     turretView(turret)
                         .position(turret.position)
-                        .onTapGesture {
-                            withAnimation(.spring()) {
-                                gameEngine.selectTurret(turret.id)
-                            }
-                        }
                 }
-                
-                // 陷阱
+
                 ForEach(gameEngine.room.traps) { trap in
                     trapView(trap)
                         .position(trap.position)
                 }
-                
-                // 猛鬼
+
                 if let ghost = gameEngine.ghost, ghost.state != .dead {
                     ghostView(ghost)
                         .position(ghost.position)
                 }
-                
-                // 子弹
+
                 ForEach(gameEngine.bullets) { bullet in
                     bulletView
                         .position(bullet.position)
                 }
-                
-                // 玩家
+
                 playerView
                     .position(gameEngine.player.position)
             }
             .frame(width: geo.size.width, height: geo.size.height)
         }
     }
-    
-    // MARK: - 房间视图
+
     private var roomView: some View {
         ZStack {
-            // 房间主体
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color.gray.opacity(0.3))
                 .frame(width: gameEngine.room.size.width, height: gameEngine.room.size.height)
-            
-            // 房间边框
+
             RoundedRectangle(cornerRadius: 12)
                 .stroke(Color.gray.opacity(0.5), lineWidth: 2)
                 .frame(width: gameEngine.room.size.width, height: gameEngine.room.size.height)
-            
-            // 门
+
             VStack(spacing: 0) {
                 ZStack(alignment: .bottom) {
-                    // 门框
                     RoundedRectangle(cornerRadius: 4)
                         .fill(Color.brown)
                         .frame(width: 50, height: 60)
-                    
-                    // 门血量条背景
+
                     RoundedRectangle(cornerRadius: 2)
                         .fill(Color.black.opacity(0.5))
                         .frame(width: 40, height: 6)
-                    
-                    // 门血量条
+
                     RoundedRectangle(cornerRadius: 2)
                         .fill(doorHPColor)
                         .frame(width: 40 * CGFloat(gameEngine.room.doorHP / gameEngine.room.maxDoorHP), height: 6)
                 }
-                
+
                 Text("门 Lv.\(gameEngine.room.doorLevel)")
                     .font(.caption2)
                     .foregroundColor(.white)
             }
-            .position(x: gameEngine.room.position.x, y: gameEngine.room.position.y - gameEngine.room.size.height/2)
-            
-            // 床
+            .position(x: gameEngine.room.position.x, y: gameEngine.room.position.y - gameEngine.room.size.height / 2)
+
             VStack(spacing: 4) {
                 Image(systemName: "bed.double.fill")
                     .font(.system(size: 40))
                     .foregroundColor(.green)
-                
+
                 Text("床 Lv.\(gameEngine.room.bedLevel)")
                     .font(.caption2)
                     .foregroundColor(.white)
@@ -178,31 +154,21 @@ struct GameRoomView: View {
         }
         .position(gameEngine.room.position)
     }
-    
+
     private var doorHPColor: Color {
         let ratio = gameEngine.room.doorHP / gameEngine.room.maxDoorHP
-        if ratio > 0.6 {
-            return .green
-        } else if ratio > 0.3 {
-            return .yellow
-        } else {
-            return .red
-        }
+        if ratio > 0.6 { return .green }
+        if ratio > 0.3 { return .yellow }
+        return .red
     }
-    
-    // MARK: - 玩家视图
+
     private var playerView: some View {
         ZStack {
-            // 玩家身体
             Circle()
                 .fill(gameEngine.player.isSleeping ? Color.green.opacity(0.8) : Color.blue)
                 .frame(width: 30, height: 30)
-                .overlay(
-                    Circle()
-                        .stroke(Color.white, lineWidth: 2)
-                )
-            
-            // 睡眠指示器
+                .overlay(Circle().stroke(Color.white, lineWidth: 2))
+
             if gameEngine.player.isSleeping {
                 Text("💤")
                     .font(.title3)
@@ -210,42 +176,29 @@ struct GameRoomView: View {
             }
         }
     }
-    
-    // MARK: - 猛鬼视图
+
     private func ghostView(_ ghost: Ghost) -> some View {
         ZStack {
-            // 猛鬼身体
             Circle()
                 .fill(ghost.isFrozen ? Color.cyan.opacity(0.6) : ghost.kind.color.opacity(0.85))
                 .frame(width: ghost.kind == .tank ? 48 : 40, height: ghost.kind == .tank ? 48 : 40)
-                .overlay(
-                    Circle()
-                        .stroke(ghost.kind.color, lineWidth: 2)
-                )
-            
-            // 眼睛
+                .overlay(Circle().stroke(ghost.kind.color, lineWidth: 2))
+
             HStack(spacing: 4) {
-                Circle()
-                    .fill(Color.yellow)
-                    .frame(width: 8, height: 8)
-                Circle()
-                    .fill(Color.yellow)
-                    .frame(width: 8, height: 8)
+                Circle().fill(Color.yellow).frame(width: 8, height: 8)
+                Circle().fill(Color.yellow).frame(width: 8, height: 8)
             }
-            
-            // 血量条背景
+
             RoundedRectangle(cornerRadius: 2)
                 .fill(Color.black.opacity(0.5))
                 .frame(width: 40, height: 4)
                 .offset(y: -28)
-            
-            // 血量条
+
             RoundedRectangle(cornerRadius: 2)
                 .fill(Color.red)
                 .frame(width: 40 * CGFloat(ghost.hp / ghost.maxHP), height: 4)
                 .offset(y: -28)
-            
-            // 等级标识
+
             Text("Lv.\(ghost.level)")
                 .font(.caption2)
                 .foregroundColor(.white)
@@ -255,8 +208,7 @@ struct GameRoomView: View {
                 .font(.caption2)
                 .foregroundColor(.white.opacity(0.85))
                 .offset(y: 42)
-            
-            // 冻结效果
+
             if ghost.isFrozen {
                 Image(systemName: "snowflake")
                     .font(.title2)
@@ -265,31 +217,43 @@ struct GameRoomView: View {
             }
         }
     }
-    
-    // MARK: - 炮台视图
+
+    private func turretTapTarget(_ turret: Turret) -> some View {
+        Circle()
+            .fill(Color.clear)
+            .frame(width: 72, height: 72)
+            .contentShape(Circle())
+            .onTapGesture {
+                withAnimation(.spring()) {
+                    gameEngine.selectTurret(turret.id)
+                }
+            }
+            .onLongPressGesture {
+                withAnimation(.spring()) {
+                    inspectedTurretID = inspectedTurretID == turret.id ? nil : turret.id
+                }
+            }
+    }
+
     private func turretView(_ turret: Turret) -> some View {
         let isSelected = gameEngine.selectedTurretID == turret.id
 
         return ZStack {
-            // 炮台底座
             Circle()
                 .fill((isSelected ? Color.mint : Color.orange).opacity(0.18))
-                .frame(width: turret.range * 2, height: turret.range * 2)
-            
-            // 炮台主体
+                .frame(width: max(44, turret.range * 1.1), height: max(44, turret.range * 1.1))
+
             ZStack {
                 Circle()
                     .fill(isSelected ? Color.mint : Color.orange)
                     .frame(width: isSelected ? 34 : 30, height: isSelected ? 34 : 30)
-                
-                // 炮管
+
                 Rectangle()
                     .fill((isSelected ? Color.mint : Color.orange).opacity(0.85))
                     .frame(width: 20, height: 6)
                     .rotationEffect(.radians(turret.angle))
             }
-            
-            // 等级
+
             Text("\(turret.level)")
                 .font(.caption2.bold())
                 .foregroundColor(.white)
@@ -303,18 +267,17 @@ struct GameRoomView: View {
             }
         }
     }
-    
-    // MARK: - 陷阱视图
+
     private func trapView(_ trap: Trap) -> some View {
         ZStack {
             Circle()
                 .fill(trap.type.color.opacity(0.4))
                 .frame(width: 35, height: 35)
-            
+
             Image(systemName: trap.type.icon)
                 .font(.title3)
                 .foregroundColor(trap.type.color)
-            
+
             if trap.isTriggered {
                 Circle()
                     .stroke(trap.type.color, lineWidth: 2)
@@ -322,53 +285,76 @@ struct GameRoomView: View {
             }
         }
     }
-    
-    // MARK: - 子弹视图
+
     private var bulletView: some View {
         Circle()
             .fill(Color.yellow)
             .frame(width: 8, height: 8)
             .shadow(color: .yellow, radius: 4, x: 0, y: 0)
     }
-    
-    // MARK: - 状态栏
+
+    private var inspectedTurret: Turret? {
+        guard let inspectedTurretID else { return nil }
+        return gameEngine.room.turrets.first(where: { $0.id == inspectedTurretID })
+    }
+
     private var statusBar: some View {
-        VStack(spacing: 8) {
-            HStack(spacing: 8) {
-                StatusBadge(title: "金币", value: "\(gameEngine.player.gold)", systemImage: "dollarsign.circle.fill", tint: .yellow)
-                StatusBadge(title: "波次", value: gameEngine.currentWaveText, systemImage: "waveform", tint: .cyan)
-                StatusBadge(title: "进度", value: gameEngine.victoryProgressText, systemImage: "trophy.fill", tint: .orange)
-            }
-
-            HStack(spacing: 8) {
-                StatusBadge(title: "时间", value: formatTime(gameEngine.gameTime), systemImage: "clock.fill", tint: .blue)
-                StatusBadge(title: "评分", value: gameEngine.defenseScoreText, systemImage: "shield.lefthalf.filled", tint: .green)
-                if gameEngine.selectedTurretID != nil {
-                    StatusBadge(title: "炮台", value: "已选中", systemImage: "scope", tint: .mint)
-                }
-            }
-
-            HStack(spacing: 8) {
-                Text(gameEngine.lastEventText)
-                    .font(.caption)
+        VStack(spacing: 6) {
+            HStack {
+                Label(isHUDExpanded ? "收起" : "展开", systemImage: isHUDExpanded ? "chevron.up" : "chevron.down")
+                    .font(.caption.bold())
                     .foregroundColor(.white.opacity(0.9))
-                    .lineLimit(1)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                Button(action: {
-                    withAnimation(.spring()) {
-                        gameEngine.toggleFastForward()
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.white.opacity(0.08))
+                    .clipShape(Capsule())
+                    .onTapGesture {
+                        withAnimation(.spring()) {
+                            isHUDExpanded.toggle()
+                        }
                     }
-                }) {
-                    Label(gameEngine.isFastForwardEnabled ? "2x" : "1x", systemImage: "forward.fill")
-                        .font(.caption.bold())
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(
-                            Capsule()
-                                .fill(gameEngine.isFastForwardEnabled ? Color.orange : Color.white.opacity(0.12))
-                        )
+                Spacer()
+            }
+
+            if isHUDExpanded {
+                VStack(spacing: 8) {
+                    HStack(spacing: 8) {
+                        StatusBadge(title: "金币", value: "\(gameEngine.player.gold)", systemImage: "dollarsign.circle.fill", tint: .yellow)
+                        StatusBadge(title: "波次", value: gameEngine.currentWaveText, systemImage: "waveform", tint: .cyan)
+                        StatusBadge(title: "进度", value: gameEngine.victoryProgressText, systemImage: "trophy.fill", tint: .orange)
+                    }
+
+                    HStack(spacing: 8) {
+                        StatusBadge(title: "时间", value: formatTime(gameEngine.gameTime), systemImage: "clock.fill", tint: .blue)
+                        StatusBadge(title: "评分", value: gameEngine.defenseScoreText, systemImage: "shield.lefthalf.filled", tint: .green)
+                        if gameEngine.selectedTurretID != nil {
+                            StatusBadge(title: "炮台", value: "已选中", systemImage: "scope", tint: .mint)
+                        }
+                    }
+
+                    HStack(spacing: 8) {
+                        Text(gameEngine.lastEventText)
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.9))
+                            .lineLimit(1)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                        Button(action: {
+                            withAnimation(.spring()) {
+                                gameEngine.toggleFastForward()
+                            }
+                        }) {
+                            Label(gameEngine.isFastForwardEnabled ? "2x" : "1x", systemImage: "forward.fill")
+                                .font(.caption.bold())
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(
+                                    Capsule()
+                                        .fill(gameEngine.isFastForwardEnabled ? Color.orange : Color.white.opacity(0.12))
+                                )
+                        }
+                    }
                 }
             }
         }
@@ -382,8 +368,7 @@ struct GameRoomView: View {
                 )
         )
     }
-    
-    // MARK: - 睡觉按钮
+
     private var sleepButton: some View {
         Button(action: {
             withAnimation(.spring()) {
@@ -397,17 +382,12 @@ struct GameRoomView: View {
             .font(.subheadline.weight(.semibold))
             .foregroundColor(.white)
             .frame(width: 110, height: 46)
-            .background(
-                gameEngine.player.isSleeping ?
-                Color.orange.gradient :
-                Color.green.gradient
-            )
+            .background(gameEngine.player.isSleeping ? Color.orange.gradient : Color.green.gradient)
             .cornerRadius(12)
             .shadow(color: gameEngine.player.isSleeping ? .orange.opacity(0.5) : .green.opacity(0.5), radius: 8, x: 0, y: 4)
         }
     }
-    
-    // MARK: - 商店切换按钮
+
     private var shopToggleButton: some View {
         Button(action: {
             withAnimation(.spring()) {
@@ -415,8 +395,8 @@ struct GameRoomView: View {
             }
         }) {
             HStack(spacing: 8) {
-                Image(systemName: "cart.fill")
-                Text("商店")
+                Image(systemName: showShop ? "xmark" : "cart.fill")
+                Text(showShop ? "关闭" : "商店")
             }
             .font(.subheadline.weight(.semibold))
             .foregroundColor(.white)
@@ -426,8 +406,7 @@ struct GameRoomView: View {
             .shadow(color: .purple.opacity(0.5), radius: 8, x: 0, y: 4)
         }
     }
-    
-    // MARK: - 暂停按钮
+
     private var pauseButton: some View {
         Button(action: {
             gameEngine.pauseGame()
@@ -440,24 +419,75 @@ struct GameRoomView: View {
                 .clipShape(Circle())
         }
     }
-    
-    // MARK: - 商店面板
-    private var shopPanel: some View {
-        ShopPanelView(gameEngine: gameEngine, compact: true)
-            .frame(width: 170, height: 320)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color.black.opacity(0.92))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color.purple.opacity(0.45), lineWidth: 1)
-                    )
-            )
-            .padding(.trailing, 8)
-            .padding(.top, 88)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+
+    private var bottomShopDrawer: some View {
+        VStack(spacing: 8) {
+            Capsule()
+                .fill(Color.white.opacity(0.3))
+                .frame(width: 42, height: 5)
+                .padding(.top, 8)
+
+            ShopPanelView(gameEngine: gameEngine, compact: true)
+                .frame(maxWidth: .infinity)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 290)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Color.black.opacity(0.95))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(Color.purple.opacity(0.35), lineWidth: 1)
+                )
+        )
+        .padding(.horizontal, 10)
+        .frame(maxHeight: .infinity, alignment: .bottom)
     }
-    
+
+    private func turretInspector(_ turret: Turret) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text("炮台信息")
+                    .font(.headline.bold())
+                    .foregroundColor(.white)
+                Spacer()
+                Button {
+                    withAnimation(.spring()) {
+                        inspectedTurretID = nil
+                    }
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.white.opacity(0.8))
+                }
+            }
+
+            Text("等级：Lv.\(turret.level)")
+                .foregroundColor(.white)
+            Text("伤害：\(Int(turret.damage))")
+                .foregroundColor(.white.opacity(0.85))
+            Text("射程：\(Int(turret.range))")
+                .foregroundColor(.white.opacity(0.85))
+            Text("升级费用：\(turret.upgradeCost)")
+                .foregroundColor(.mint)
+            Text("点按选中，去商店执行升级")
+                .font(.caption)
+                .foregroundColor(.white.opacity(0.65))
+        }
+        .padding(12)
+        .frame(width: 180)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color.black.opacity(0.88))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(Color.mint.opacity(0.4), lineWidth: 1)
+                )
+        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(.top, isHUDExpanded ? 150 : 70)
+        .padding(.leading, 12)
+    }
+
     private func formatTime(_ time: TimeInterval) -> String {
         let minutes = Int(time) / 60
         let seconds = Int(time) % 60
