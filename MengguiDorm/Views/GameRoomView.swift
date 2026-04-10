@@ -2,7 +2,7 @@ import SwiftUI
 
 struct GameRoomView: View {
     @ObservedObject var gameEngine: GameEngine
-    @State private var showShop = true
+    @State private var showShop = false
     
     var body: some View {
         ZStack {
@@ -333,20 +333,26 @@ struct GameRoomView: View {
     
     // MARK: - 状态栏
     private var statusBar: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 10) {
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
                 StatusBadge(title: "金币", value: "\(gameEngine.player.gold)", systemImage: "dollarsign.circle.fill", tint: .yellow)
                 StatusBadge(title: "波次", value: gameEngine.currentWaveText, systemImage: "waveform", tint: .cyan)
                 StatusBadge(title: "进度", value: gameEngine.victoryProgressText, systemImage: "trophy.fill", tint: .orange)
-                StatusBadge(title: "时间", value: formatTime(gameEngine.gameTime), systemImage: "clock.fill", tint: .blue)
-                StatusBadge(title: "评分", value: gameEngine.defenseScoreText, systemImage: "shield.lefthalf.filled", tint: .green)
             }
 
-            HStack(spacing: 10) {
-                Label(gameEngine.lastEventText, systemImage: "sparkles")
-                    .font(.subheadline)
-                    .foregroundColor(.white)
-                    .lineLimit(2)
+            HStack(spacing: 8) {
+                StatusBadge(title: "时间", value: formatTime(gameEngine.gameTime), systemImage: "clock.fill", tint: .blue)
+                StatusBadge(title: "评分", value: gameEngine.defenseScoreText, systemImage: "shield.lefthalf.filled", tint: .green)
+                if gameEngine.selectedTurretID != nil {
+                    StatusBadge(title: "炮台", value: "已选中", systemImage: "scope", tint: .mint)
+                }
+            }
+
+            HStack(spacing: 8) {
+                Text(gameEngine.lastEventText)
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.9))
+                    .lineLimit(1)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 Button(action: {
@@ -355,10 +361,10 @@ struct GameRoomView: View {
                     }
                 }) {
                     Label(gameEngine.isFastForwardEnabled ? "2x" : "1x", systemImage: "forward.fill")
-                        .font(.subheadline.bold())
+                        .font(.caption.bold())
                         .foregroundColor(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
                         .background(
                             Capsule()
                                 .fill(gameEngine.isFastForwardEnabled ? Color.orange : Color.white.opacity(0.12))
@@ -366,7 +372,7 @@ struct GameRoomView: View {
                 }
             }
         }
-        .padding()
+        .padding(10)
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color.black.opacity(0.6))
@@ -388,9 +394,9 @@ struct GameRoomView: View {
                 Image(systemName: gameEngine.player.isSleeping ? "person.fill" : "bed.double.fill")
                 Text(gameEngine.player.isSleeping ? "起床" : "睡觉")
             }
-            .font(.headline)
+            .font(.subheadline.weight(.semibold))
             .foregroundColor(.white)
-            .frame(width: 120, height: 50)
+            .frame(width: 110, height: 46)
             .background(
                 gameEngine.player.isSleeping ?
                 Color.orange.gradient :
@@ -412,9 +418,9 @@ struct GameRoomView: View {
                 Image(systemName: "cart.fill")
                 Text("商店")
             }
-            .font(.headline)
+            .font(.subheadline.weight(.semibold))
             .foregroundColor(.white)
-            .frame(width: 100, height: 50)
+            .frame(width: 92, height: 46)
             .background(Color.purple.gradient)
             .cornerRadius(12)
             .shadow(color: .purple.opacity(0.5), radius: 8, x: 0, y: 4)
@@ -437,17 +443,19 @@ struct GameRoomView: View {
     
     // MARK: - 商店面板
     private var shopPanel: some View {
-        ShopPanelView(gameEngine: gameEngine)
-            .frame(width: 200)
+        ShopPanelView(gameEngine: gameEngine, compact: true)
+            .frame(width: 170, height: 320)
             .background(
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(Color.black.opacity(0.85))
+                    .fill(Color.black.opacity(0.92))
                     .overlay(
                         RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color.purple.opacity(0.5), lineWidth: 1)
+                            .stroke(Color.purple.opacity(0.45), lineWidth: 1)
                     )
             )
-            .position(x: UIScreen.main.bounds.width - 110, y: UIScreen.main.bounds.height / 2)
+            .padding(.trailing, 8)
+            .padding(.top, 88)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
     }
     
     private func formatTime(_ time: TimeInterval) -> String {

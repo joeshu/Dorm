@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ShopPanelView: View {
     @ObservedObject var gameEngine: GameEngine
+    let compact: Bool
     
     var body: some View {
         VStack(spacing: 12) {
@@ -10,7 +11,7 @@ struct ShopPanelView: View {
                 Image(systemName: "cart.fill")
                     .foregroundColor(.purple)
                 Text("商店")
-                    .font(.headline.bold())
+                    .font(compact ? .subheadline.bold() : .headline.bold())
                     .foregroundColor(.white)
                 Spacer()
             }
@@ -56,7 +57,8 @@ struct ShopPanelView: View {
                     item: item,
                     cost: gameEngine.getCost(for: item),
                     canAfford: gameEngine.canAfford(item),
-                    canBuy: gameEngine.canBuy(item)
+                    canBuy: gameEngine.canBuy(item),
+                    compact: compact
                 ) {
                     _ = gameEngine.buyItem(item)
                 }
@@ -70,6 +72,7 @@ struct ShopItemView: View {
     let cost: Int
     let canAfford: Bool
     let canBuy: Bool
+    let compact: Bool
     let action: () -> Void
     
     var body: some View {
@@ -79,23 +82,25 @@ struct ShopItemView: View {
                 ZStack {
                     RoundedRectangle(cornerRadius: 8)
                         .fill(item.color.opacity(0.3))
-                        .frame(width: 36, height: 36)
+                        .frame(width: compact ? 30 : 36, height: compact ? 30 : 36)
                     
                     Image(systemName: item.icon)
-                        .font(.system(size: 18))
+                        .font(.system(size: compact ? 15 : 18))
                         .foregroundColor(item.color)
                 }
                 
                 // 信息
                 VStack(alignment: .leading, spacing: 2) {
                     Text(item.name)
-                        .font(.subheadline.bold())
+                        .font(compact ? .caption.bold() : .subheadline.bold())
                         .foregroundColor(canAfford && canBuy ? .white : .gray)
                     
-                    Text(item.description)
-                        .font(.caption2)
-                        .foregroundColor(.gray)
-                        .lineLimit(1)
+                    if !compact {
+                        Text(item.description)
+                            .font(.caption2)
+                            .foregroundColor(.gray)
+                            .lineLimit(1)
+                    }
                 }
                 
                 Spacer()
@@ -103,13 +108,13 @@ struct ShopItemView: View {
                 // 价格
                 HStack(spacing: 2) {
                     Image(systemName: "dollarsign.circle.fill")
-                        .font(.caption)
+                        .font(.caption2)
                     Text("\(cost)")
-                        .font(.subheadline.bold())
+                        .font(compact ? .caption.bold() : .subheadline.bold())
                 }
                 .foregroundColor(canAfford ? .yellow : .red)
             }
-            .padding(8)
+            .padding(compact ? 6 : 8)
             .background(
                 RoundedRectangle(cornerRadius: 10)
                     .fill(canAfford && canBuy ? item.color.opacity(0.15) : Color.gray.opacity(0.1))

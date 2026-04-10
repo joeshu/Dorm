@@ -7,22 +7,24 @@ struct StatusBadge: View {
     let tint: Color
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 5) {
             Image(systemName: systemImage)
+                .font(.caption)
                 .foregroundColor(tint)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 1) {
                 Text(title)
-                    .font(.caption2)
-                    .foregroundColor(.white.opacity(0.65))
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(.white.opacity(0.6))
                 Text(value)
-                    .font(.system(.subheadline, design: .rounded).bold())
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
+                    .lineLimit(1)
             }
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
         .background(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 10)
                 .fill(Color.white.opacity(0.08))
         )
     }
