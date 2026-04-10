@@ -22,10 +22,14 @@ class GameEngine: ObservableObject {
     private var lastUpdateTime: Date?
     
     // 游戏区域
-    let gameBounds = CGRect(x: 0, y: 0, width: 400, height: 400)
+    let gameBounds = CGRect(x: 0, y: 0, width: 400, height: 520)
+
+    private var roomCenter: CGPoint {
+        CGPoint(x: gameBounds.midX, y: gameBounds.midY + 70)
+    }
     
     init() {
-        let roomPos = CGPoint(x: gameBounds.midX, y: gameBounds.midY)
+        let roomPos = roomCenter
         self.room = Room(position: roomPos, size: GameConfig.roomSize)
         self.player = Player(position: CGPoint(x: roomPos.x, y: roomPos.y + 50))
     }
@@ -41,7 +45,7 @@ class GameEngine: ObservableObject {
         isFastForwardEnabled = false
         
         // 重置状态
-        let roomPos = CGPoint(x: gameBounds.midX, y: gameBounds.midY)
+        let roomPos = roomCenter
         room = Room(position: roomPos, size: GameConfig.roomSize)
         player = Player(position: CGPoint(x: roomPos.x, y: roomPos.y + 50))
         ghost = nil
@@ -398,10 +402,21 @@ class GameEngine: ObservableObject {
     
     // MARK: - 玩家操作
     
-    func toggleSleep() {
-        player.isSleeping.toggle()
-        lastEventText = player.isSleeping ? "开始睡觉，金币持续增长" : "已起床，可以专心布防"
+    func movePlayer(to point: CGPoint) {
+        let halfRoomWidth = room.size.width / 2 - 24
+        let halfRoomHeight = room.size.height / 2 - 24
+        let minX = room.position.x - halfRoomWidth
+        let maxX = room.position.x + halfRoomWidth
+        let minY = room.position.y - halfRoomHeight
+        let maxY = room.position.y + halfRoomHeight
+
+        player.position = CGPoint(
+            x: min(max(point.x, minX), maxX),
+            y: min(max(point.y, minY), maxY)
+        )
+        player.isInRoom = true
     }
+
 
     func toggleFastForward() {
         isFastForwardEnabled.toggle()

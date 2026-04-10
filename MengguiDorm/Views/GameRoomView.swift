@@ -105,6 +105,15 @@ struct GameRoomView: View {
 
                 playerView
                     .position(gameEngine.player.position)
+
+                Text("拖动蓝色人物可移动")
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.65))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.black.opacity(0.35))
+                    .clipShape(Capsule())
+                    .position(x: gameEngine.room.position.x, y: gameEngine.room.position.y + gameEngine.room.size.height / 2 + 36)
             }
             .frame(width: geo.size.width, height: geo.size.height)
         }
@@ -172,9 +181,20 @@ struct GameRoomView: View {
             if gameEngine.player.isSleeping {
                 Text("💤")
                     .font(.title3)
-                    .offset(y: -25)
+                    .offset(y: -28)
             }
+
+            Circle()
+                .stroke(Color.white.opacity(0.12), lineWidth: 10)
+                .frame(width: 52, height: 52)
         }
+        .contentShape(Circle())
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { value in
+                    gameEngine.movePlayer(to: value.location)
+                }
+        )
     }
 
     private func ghostView(_ ghost: Ghost) -> some View {
