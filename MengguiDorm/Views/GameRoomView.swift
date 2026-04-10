@@ -129,6 +129,16 @@ struct GameRoomView: View {
                 .stroke(Color.gray.opacity(0.5), lineWidth: 2)
                 .frame(width: gameEngine.room.size.width, height: gameEngine.room.size.height)
 
+            Color.clear
+                .frame(width: gameEngine.room.size.width, height: gameEngine.room.size.height)
+                .contentShape(RoundedRectangle(cornerRadius: 12))
+                .onTapGesture { location in
+                    gameEngine.movePlayer(to: CGPoint(
+                        x: location.x + gameEngine.room.position.x - gameEngine.room.size.width / 2,
+                        y: location.y + gameEngine.room.position.y - gameEngine.room.size.height / 2
+                    ))
+                }
+
             VStack(spacing: 0) {
                 ZStack(alignment: .bottom) {
                     RoundedRectangle(cornerRadius: 4)
@@ -153,9 +163,9 @@ struct GameRoomView: View {
             VStack(spacing: 4) {
                 Image(systemName: "bed.double.fill")
                     .font(.system(size: 40))
-                    .foregroundColor(.green)
+                    .foregroundColor(gameEngine.room.isNearBed ? .yellow : .green)
 
-                Text("床 Lv.\(gameEngine.room.bedLevel)")
+                Text(gameEngine.room.isNearBed ? "床边" : "床 Lv.\(gameEngine.room.bedLevel)")
                     .font(.caption2)
                     .foregroundColor(.white)
             }
@@ -397,12 +407,16 @@ struct GameRoomView: View {
         }) {
             HStack(spacing: 8) {
                 Image(systemName: gameEngine.player.isSleeping ? "person.fill" : "bed.double.fill")
-                Text(gameEngine.player.isSleeping ? "起床" : "睡觉")
+                Text(gameEngine.player.isSleeping ? "起床" : (gameEngine.room.isNearBed ? "上床" : "靠近床铺"))
             }
             .font(.subheadline.weight(.semibold))
             .foregroundColor(.white)
-            .frame(width: 110, height: 46)
-            .background(gameEngine.player.isSleeping ? Color.orange.gradient : Color.green.gradient)
+            .frame(width: 118, height: 46)
+            .background(
+                gameEngine.room.isNearBed ?
+                (gameEngine.player.isSleeping ? Color.orange.gradient : Color.green.gradient) :
+                Color.gray.gradient
+            )
             .cornerRadius(12)
             .shadow(color: gameEngine.player.isSleeping ? .orange.opacity(0.5) : .green.opacity(0.5), radius: 8, x: 0, y: 4)
         }

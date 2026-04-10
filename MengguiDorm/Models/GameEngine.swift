@@ -417,6 +417,15 @@ class GameEngine: ObservableObject {
         player.isInRoom = true
     }
 
+    func toggleSleep() {
+        guard room.isNearBed else {
+            lastEventText = "请先移动到床边再睡觉"
+            return
+        }
+        player.isSleeping.toggle()
+        lastEventText = player.isSleeping ? "开始睡觉，金币持续增长" : "已起床，可以专心布防"
+    }
+
 
     func toggleFastForward() {
         isFastForwardEnabled.toggle()

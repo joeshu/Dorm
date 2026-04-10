@@ -53,10 +53,16 @@ struct Room: Identifiable {
         return 50 * doorLevel
     }
     
-    var bedUpgradeCost: Int {
-        return 40 * bedLevel
+    var bedPosition: CGPoint {
+        CGPoint(x: room.position.x, y: room.position.y + 20)
     }
-}
+
+    var isNearBed: Bool {
+        let dx = player.position.x - bedPosition.x
+        let dy = player.position.y - bedPosition.y
+        return sqrt(dx * dx + dy * dy) <= 46
+    }
+
 
 // MARK: - 玩家
 struct Player: Identifiable {
