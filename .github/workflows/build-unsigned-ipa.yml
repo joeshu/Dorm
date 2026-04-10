@@ -62,3 +62,21 @@ jobs:
           name: MengguiDorm-IPA
           path: build/MengguiDorm.ipa
           retention-days: 30
+
+      - name: Create GitHub Release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ipa-${{ github.run_number }}
+          name: MengguiDorm IPA #${{ github.run_number }}
+          draft: false
+          prerelease: false
+          files: build/MengguiDorm.ipa
+          body: |
+            Automated unsigned IPA build for MengguiDorm.
+
+            - Commit: ${{ github.sha }}
+            - Workflow run: ${{ github.run_number }}
+            - Artifact: MengguiDorm.ipa
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -3,7 +3,6 @@ import SwiftUI
 struct GameRoomView: View {
     @ObservedObject var gameEngine: GameEngine
     @State private var showShop = true
-    @State private var selectedTrap: ShopItem?
     
     var body: some View {
         ZStack {
@@ -315,39 +314,34 @@ struct GameRoomView: View {
     
     // MARK: - 状态栏
     private var statusBar: some View {
-        HStack(spacing: 16) {
-            // 金币
-            HStack(spacing: 6) {
-                Image(systemName: "dollarsign.circle.fill")
-                    .font(.title3)
-                    .foregroundColor(.yellow)
-                Text("\(gameEngine.player.gold)")
-                    .font(.system(.title3, design: .rounded).bold())
-                    .foregroundColor(.white)
+        VStack(spacing: 10) {
+            HStack(spacing: 10) {
+                StatusBadge(title: "金币", value: "\(gameEngine.player.gold)", systemImage: "dollarsign.circle.fill", tint: .yellow)
+                StatusBadge(title: "波次", value: gameEngine.currentWaveText, systemImage: "waveform", tint: .cyan)
+                StatusBadge(title: "时间", value: formatTime(gameEngine.gameTime), systemImage: "clock.fill", tint: .blue)
+                StatusBadge(title: "评分", value: gameEngine.defenseScoreText, systemImage: "shield.lefthalf.filled", tint: .green)
             }
-            
-            Spacer()
-            
-            // 波数
-            HStack(spacing: 6) {
-                Image(systemName: "waveform")
-                    .font(.title3)
-                    .foregroundColor(.cyan)
-                Text("波数: \(gameEngine.waveNumber)")
-                    .font(.headline)
+
+            HStack(spacing: 10) {
+                Label(gameEngine.lastEventText, systemImage: "sparkles")
+                    .font(.subheadline)
                     .foregroundColor(.white)
-            }
-            
-            Spacer()
-            
-            // 游戏时间
-            HStack(spacing: 6) {
-                Image(systemName: "clock.fill")
-                    .font(.title3)
-                    .foregroundColor(.blue)
-                Text(formatTime(gameEngine.gameTime))
-                    .font(.system(.headline, design: .monospaced))
-                    .foregroundColor(.white)
+                    .lineLimit(2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                Button(action: {
+                    withAnimation(.spring()) {
+                        gameEngine.toggleFastForward()
+                    }
+                }) {
+                    Label(gameEngine.isFastForwardEnabled ? "2x" : "1x", systemImage: "forward.fill")
+                        .font(.subheadline.bold())
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(gameEngine.isFastForwardEnabled ? Color.orange.gradient : Color.white.opacity(0.12))
+                        .clipShape(Capsule())
+                }
             }
         }
         .padding()

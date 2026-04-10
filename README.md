@@ -22,6 +22,7 @@
 - iOS 16.0+
 - XcodeGen
 - GitHub Actions
+- GitHub Releases（自动附加 unsigned IPA）
 
 ## 项目结构
 
@@ -80,6 +81,7 @@ open MengguiDorm.xcodeproj
 构建产物：
 - `MengguiDorm-IPA`
 - 产物中包含 `MengguiDorm.ipa`
+- push 到 `main` 时自动创建 GitHub Release 并附加 IPA
 
 ## 安装说明
 

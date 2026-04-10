@@ -11,6 +11,8 @@ class GameEngine: ObservableObject {
     @Published var bullets: [Bullet] = []
     @Published var gameTime: TimeInterval = 0
     @Published var waveNumber: Int = 0
+    @Published var lastEventText: String = "准备守住宿舍"
+    @Published var isFastForwardEnabled: Bool = false
     
     private var timers: [Timer] = []
     private var lastUpdateTime: Date?
@@ -30,6 +32,8 @@ class GameEngine: ObservableObject {
         gameState = .playing
         gameTime = 0
         waveNumber = 1
+        lastEventText = "第 1 波即将来袭"
+        isFastForwardEnabled = false
         
         // 重置状态
         let roomPos = CGPoint(x: gameBounds.midX, y: gameBounds.midY)
@@ -83,12 +87,17 @@ class GameEngine: ObservableObject {
         }
         timers.append(timer)
     }
+
+    private var timeScale: Double {
+        isFastForwardEnabled ? 2.0 : 1.0
+    }
     
     private func update() {
         guard gameState == .playing else { return }
         
         let now = Date()
-        let deltaTime = lastUpdateTime.map { now.timeIntervalSince($0) } ?? 1/60
+        let rawDelta = lastUpdateTime.map { now.timeIntervalSince($0) } ?? 1/60
+        let deltaTime = rawDelta * timeScale
         lastUpdateTime = now
         
         // 更新游戏时间
@@ -118,7 +127,7 @@ class GameEngine: ObservableObject {
                 guard let self = self, self.gameState == .playing else { return }
                 
                 if self.player.isSleeping {
-                    self.player.gold += Int(self.room.goldPerSecond)
+                    self.player.gold += Int(self.room.goldPerSecond * self.timeScale)
                 }
             }
         }
@@ -148,6 +157,7 @@ class GameEngine: ObservableObject {
     private func spawnGhost() {
         waveNumber += 1
         ghost = Ghost(level: waveNumber)
+        lastEventText = "第 \(waveNumber) 波猛鬼出现"
         
         // 随机生成位置（房间外围）
         let spawnPoints = [
@@ -251,6 +261,7 @@ class GameEngine: ObservableObject {
                     // 检查猛鬼是否死亡
                     if updatedGhost.state == .dead {
                         player.gold += 50 * waveNumber // 击杀奖励
+                        lastEventText = "成功击退第 \(waveNumber) 波猛鬼"
                     }
                 }
                 bullets.remove(at: i)
@@ -284,16 +295,20 @@ class GameEngine: ObservableObject {
                 switch trap.type {
                 case .freeze(let duration):
                     ghost.freeze(duration: duration)
+                    lastEventText = "冰冻陷阱生效，猛鬼被冻结"
                     
                 case .mine(let damage):
                     ghost.takeDamage(damage)
+                    lastEventText = "地雷爆炸，造成高额伤害"
                     if ghost.state == .dead {
                         player.gold += 50 * waveNumber
+                        lastEventText = "地雷击败了猛鬼"
                     }
                     
                 case .shield:
                     // 临时修复门
                     room.doorHP = min(room.doorHP + 50, room.maxDoorHP)
+                    lastEventText = "能量盾触发，房门获得修复"
                 }
                 
                 // 一次性陷阱，触发后移除
@@ -341,6 +356,12 @@ class GameEngine: ObservableObject {
     
     func toggleSleep() {
         player.isSleeping.toggle()
+        lastEventText = player.isSleeping ? "开始睡觉，金币持续增长" : "已起床，可以专心布防"
+    }
+
+    func toggleFastForward() {
+        isFastForwardEnabled.toggle()
+        lastEventText = isFastForwardEnabled ? "已开启 2x 节奏" : "已恢复正常速度"
     }
     
     func buyItem(_ item: ShopItem) -> Bool {
@@ -353,11 +374,13 @@ class GameEngine: ObservableObject {
             guard room.doorLevel < 10 else { return false }
             player.gold -= cost
             room.upgradeDoor()
+            lastEventText = "房门升级到 Lv.\(room.doorLevel)"
             
         case .upgradeBed:
             guard room.bedLevel < 10 else { return false }
             player.gold -= cost
             room.upgradeBed()
+            lastEventText = "床铺升级到 Lv.\(room.bedLevel)，金币效率提升"
             
         case .turret:
             guard room.turrets.count < GameConfig.maxTurrets else { return false }
@@ -370,21 +393,25 @@ class GameEngine: ObservableObject {
                 y: room.position.y + CGFloat(Darwin.sin(angle)) * radius
             )
             room.turrets.append(Turret(position: pos))
+            lastEventText = "已建造第 \(room.turrets.count) 座炮台"
             
         case .freezeTrap:
             guard room.traps.count < GameConfig.maxTraps else { return false }
             player.gold -= cost
             room.traps.append(Trap(position: getTrapPosition(), type: .freeze(duration: 3)))
+            lastEventText = "已布置冰冻陷阱"
             
         case .mineTrap:
             guard room.traps.count < GameConfig.maxTraps else { return false }
             player.gold -= cost
             room.traps.append(Trap(position: getTrapPosition(), type: .mine(damage: 300)))
+            lastEventText = "已埋设高爆地雷"
             
         case .shieldTrap:
             guard room.traps.count < GameConfig.maxTraps else { return false }
             player.gold -= cost
             room.traps.append(Trap(position: getTrapPosition(), type: .shield(duration: 10)))
+            lastEventText = "已放置能量盾装置"
         }
         
         return true
@@ -429,5 +456,14 @@ class GameEngine: ObservableObject {
         default:
             return true
         }
+    }
+    
+    var currentWaveText: String {
+        ghost?.state == .dead ? "下一波准备中" : "第 \(max(waveNumber, 1)) 波"
+    }
+
+    var defenseScoreText: String {
+        let score = player.gold + room.doorLevel * 80 + room.bedLevel * 60 + room.turrets.count * 120 + room.traps.count * 40
+        return "\(score)"
     }
 }
