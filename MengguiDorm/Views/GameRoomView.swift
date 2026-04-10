@@ -93,6 +93,11 @@ struct GameRoomView: View {
                 ForEach(gameEngine.room.turrets) { turret in
                     turretView(turret)
                         .position(turret.position)
+                        .onTapGesture {
+                            withAnimation(.spring()) {
+                                gameEngine.selectTurret(turret.id)
+                            }
+                        }
                 }
                 
                 // 陷阱
@@ -263,21 +268,23 @@ struct GameRoomView: View {
     
     // MARK: - 炮台视图
     private func turretView(_ turret: Turret) -> some View {
-        ZStack {
+        let isSelected = gameEngine.selectedTurretID == turret.id
+
+        return ZStack {
             // 炮台底座
             Circle()
-                .fill(Color.orange.opacity(0.3))
+                .fill((isSelected ? Color.mint : Color.orange).opacity(0.18))
                 .frame(width: turret.range * 2, height: turret.range * 2)
             
             // 炮台主体
             ZStack {
                 Circle()
-                    .fill(Color.orange)
-                    .frame(width: 30, height: 30)
+                    .fill(isSelected ? Color.mint : Color.orange)
+                    .frame(width: isSelected ? 34 : 30, height: isSelected ? 34 : 30)
                 
                 // 炮管
                 Rectangle()
-                    .fill(Color.orange.opacity(0.8))
+                    .fill((isSelected ? Color.mint : Color.orange).opacity(0.85))
                     .frame(width: 20, height: 6)
                     .rotationEffect(.radians(turret.angle))
             }
@@ -287,6 +294,13 @@ struct GameRoomView: View {
                 .font(.caption2.bold())
                 .foregroundColor(.white)
                 .offset(y: -20)
+
+            if isSelected {
+                Text("已选中")
+                    .font(.caption2.bold())
+                    .foregroundColor(.mint)
+                    .offset(y: 24)
+            }
         }
     }
     

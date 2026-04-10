@@ -4,6 +4,8 @@ import Combine
 
 @MainActor
 class GameEngine: ObservableObject {
+    @AppStorage("mengguiDorm.bestWave") var bestWave: Int = 0
+    @AppStorage("mengguiDorm.bestScore") var bestScore: Int = 0
     @Published var gameState: GameState = .lobby
     @Published var room: Room
     @Published var player: Player
@@ -14,6 +16,7 @@ class GameEngine: ObservableObject {
     @Published var lastEventText: String = "准备守住宿舍"
     @Published var isFastForwardEnabled: Bool = false
     @Published var prepCountdown: Int = 5
+    @Published var selectedTurretID: UUID?
     
     private var timers: [Timer] = []
     private var lastUpdateTime: Date?
@@ -43,6 +46,7 @@ class GameEngine: ObservableObject {
         player = Player(position: CGPoint(x: roomPos.x, y: roomPos.y + 50))
         ghost = nil
         bullets.removeAll()
+        selectedTurretID = nil
         
         // 启动游戏循环
         startGameLoop()
@@ -72,6 +76,7 @@ class GameEngine: ObservableObject {
     }
     
     func endGame(win: Bool) {
+        persistBestRecordIfNeeded()
         gameState = .gameOver(win)
         stopAllTimers()
     }
@@ -402,6 +407,13 @@ class GameEngine: ObservableObject {
         isFastForwardEnabled.toggle()
         lastEventText = isFastForwardEnabled ? "已开启 2x 节奏" : "已恢复正常速度"
     }
+
+    func selectTurret(_ turretID: UUID) {
+        selectedTurretID = selectedTurretID == turretID ? nil : turretID
+        if let turret = room.turrets.first(where: { $0.id == selectedTurretID }) {
+            lastEventText = "已选中 Lv.\(turret.level) 炮台"
+        }
+    }
     
     func buyItem(_ item: ShopItem) -> Bool {
         let cost = item.getCost(level: getItemLevel(item))
@@ -436,7 +448,7 @@ class GameEngine: ObservableObject {
             
         case .upgradeTurret:
             guard !room.turrets.isEmpty else { return false }
-            guard upgradeStrongestTurret() else { return false }
+            guard upgradeSelectedTurret() else { return false }
             
         case .mineTrap:
             guard room.traps.count < GameConfig.maxTraps else { return false }
@@ -459,7 +471,12 @@ class GameEngine: ObservableObject {
         case .upgradeDoor: return room.doorLevel
         case .upgradeBed: return room.bedLevel
         case .turret: return room.turrets.count + 1
-        case .upgradeTurret: return (room.turrets.map(\.level).max() ?? 0) + 1
+        case .upgradeTurret:
+            if let turretID = selectedTurretID,
+               let turret = room.turrets.first(where: { $0.id == turretID }) {
+                return turret.level
+            }
+            return (room.turrets.map(\.level).max() ?? 0) + 1
         default: return 1
         }
     }
@@ -482,6 +499,31 @@ class GameEngine: ObservableObject {
         return true
     }
 
+    private func upgradeSelectedTurret() -> Bool {
+        guard let turretID = selectedTurretID,
+              let index = room.turrets.firstIndex(where: { $0.id == turretID }) else {
+            lastEventText = "请先点选一座炮台"
+            return false
+        }
+
+        let cost = room.turrets[index].upgradeCost
+        guard player.gold >= cost else { return false }
+        player.gold -= cost
+        room.turrets[index].upgrade()
+        lastEventText = "选中炮台已升级到 Lv.\(room.turrets[index].level)"
+        return true
+    }
+
+    private func persistBestRecordIfNeeded() {
+        let score = currentDefenseScore
+        if waveNumber > bestWave {
+            bestWave = waveNumber
+        }
+        if score > bestScore {
+            bestScore = score
+        }
+    }
+
     // MARK: - 获取购买成本
     
     func getCost(for item: ShopItem) -> Int {
@@ -501,7 +543,7 @@ class GameEngine: ObservableObject {
         case .turret:
             return room.turrets.count < GameConfig.maxTurrets
         case .upgradeTurret:
-            return !room.turrets.isEmpty
+            return !room.turrets.isEmpty && selectedTurretID != nil
         case .freezeTrap, .mineTrap, .shieldTrap:
             return room.traps.count < GameConfig.maxTraps
         default:
@@ -516,9 +558,20 @@ class GameEngine: ObservableObject {
         return ghost?.state == .dead ? "下一波准备中" : "第 \(max(waveNumber, 1)) 波"
     }
 
+    var currentDefenseScore: Int {
+        player.gold + room.doorLevel * 80 + room.bedLevel * 60 + room.turrets.count * 120 + room.traps.count * 40
+    }
+
     var defenseScoreText: String {
-        let score = player.gold + room.doorLevel * 80 + room.bedLevel * 60 + room.turrets.count * 120 + room.traps.count * 40
-        return "\(score)"
+        "\(currentDefenseScore)"
+    }
+
+    var bestWaveText: String {
+        "\(bestWave)"
+    }
+
+    var bestScoreText: String {
+        "\(bestScore)"
     }
 
     var victoryProgressText: String {

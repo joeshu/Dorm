@@ -56,9 +56,24 @@ struct LobbyView: View {
                         )
                 )
                 
+                VStack(alignment: .leading, spacing: 8) {
+                    Label("守住 5 波即可胜利", systemImage: "trophy.fill")
+                    Label("最高波数：\(gameEngine.bestWaveText)", systemImage: "flag.fill")
+                    Label("最高评分：\(gameEngine.bestScoreText)", systemImage: "star.fill")
+                }
+                .font(.headline)
+                .foregroundColor(.white.opacity(0.8))
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color.black.opacity(0.3))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                        )
+                )
+
                 Spacer()
-                
-                // 开始按钮
                 VStack(spacing: 14) {
                     Button(action: {
                         gameEngine.startGame()
