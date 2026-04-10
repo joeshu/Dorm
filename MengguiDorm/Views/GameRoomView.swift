@@ -359,8 +359,10 @@ struct GameRoomView: View {
                         .foregroundColor(.white)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
-                        .background(gameEngine.isFastForwardEnabled ? Color.orange.gradient : Color.white.opacity(0.12))
-                        .clipShape(Capsule())
+                        .background(
+                            Capsule()
+                                .fill(gameEngine.isFastForwardEnabled ? Color.orange.gradient : Color.white.opacity(0.12))
+                        )
                 }
             }
         }

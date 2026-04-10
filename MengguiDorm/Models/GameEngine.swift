@@ -449,6 +449,12 @@ class GameEngine: ObservableObject {
         case .upgradeTurret:
             guard !room.turrets.isEmpty else { return false }
             guard upgradeSelectedTurret() else { return false }
+
+        case .freezeTrap:
+            guard room.traps.count < GameConfig.maxTraps else { return false }
+            player.gold -= cost
+            room.traps.append(Trap(position: getTrapPosition(), type: .freeze(duration: 3)))
+            lastEventText = "已布置冰冻陷阱"
             
         case .mineTrap:
             guard room.traps.count < GameConfig.maxTraps else { return false }
