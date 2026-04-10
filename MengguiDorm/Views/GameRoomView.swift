@@ -318,6 +318,7 @@ struct GameRoomView: View {
             HStack(spacing: 10) {
                 StatusBadge(title: "金币", value: "\(gameEngine.player.gold)", systemImage: "dollarsign.circle.fill", tint: .yellow)
                 StatusBadge(title: "波次", value: gameEngine.currentWaveText, systemImage: "waveform", tint: .cyan)
+                StatusBadge(title: "进度", value: gameEngine.victoryProgressText, systemImage: "trophy.fill", tint: .orange)
                 StatusBadge(title: "时间", value: formatTime(gameEngine.gameTime), systemImage: "clock.fill", tint: .blue)
                 StatusBadge(title: "评分", value: gameEngine.defenseScoreText, systemImage: "shield.lefthalf.filled", tint: .green)
             }

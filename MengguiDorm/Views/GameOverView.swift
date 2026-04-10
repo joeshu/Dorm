@@ -25,7 +25,7 @@ struct GameOverView: View {
                     .foregroundColor(isWin ? .yellow : .red)
                 
                 // 描述
-                Text(isWin ? "你成功击败了猛鬼！" : "房门被猛鬼破坏了...")
+                Text(isWin ? "你成功守住了整晚，宿舍安全了！" : "房门被猛鬼破坏了，再调整策略试试。")
                     .font(.title3)
                     .foregroundColor(.white.opacity(0.8))
                 
@@ -38,6 +38,7 @@ struct GameOverView: View {
                     statRow(icon: "dollarsign.circle.fill", label: "获得金币", value: "\(gameEngine.player.gold)", color: .yellow)
                     statRow(icon: "bed.double.fill", label: "床铺等级", value: "Lv.\(gameEngine.room.bedLevel)", color: .green)
                     statRow(icon: "door.left.hand.closed", label: "房门等级", value: "Lv.\(gameEngine.room.doorLevel)", color: .brown)
+                    statRow(icon: "shield.lefthalf.filled", label: "防守评分", value: gameEngine.defenseScoreText, color: .mint)
                 }
                 .padding()
                 .background(

@@ -340,4 +340,5 @@ struct GameConfig {
     static let goldTickInterval: TimeInterval = 1
     static let maxTurrets = 4
     static let maxTraps = 6
+    static let wavesToWin = 5
 }

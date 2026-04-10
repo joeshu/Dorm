@@ -13,6 +13,7 @@ class GameEngine: ObservableObject {
     @Published var waveNumber: Int = 0
     @Published var lastEventText: String = "准备守住宿舍"
     @Published var isFastForwardEnabled: Bool = false
+    @Published var prepCountdown: Int = 5
     
     private var timers: [Timer] = []
     private var lastUpdateTime: Date?
@@ -31,8 +32,9 @@ class GameEngine: ObservableObject {
     func startGame() {
         gameState = .playing
         gameTime = 0
-        waveNumber = 1
-        lastEventText = "第 1 波即将来袭"
+        waveNumber = 0
+        prepCountdown = 5
+        lastEventText = "做好准备，第一波即将到来"
         isFastForwardEnabled = false
         
         // 重置状态
@@ -46,6 +48,15 @@ class GameEngine: ObservableObject {
         startGameLoop()
         startGoldGeneration()
         startGhostSpawning()
+    }
+
+    func quickStartGame() {
+        startGame()
+        player.gold = 180
+        room.upgradeBed()
+        room.upgradeDoor()
+        _ = buyItem(.turret)
+        lastEventText = "快速开局：已预装基础防线"
     }
     
     func pauseGame() {
@@ -137,10 +148,25 @@ class GameEngine: ObservableObject {
     // MARK: - 猛鬼系统
     
     private func startGhostSpawning() {
-        // 延迟5秒后生成第一个猛鬼
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
-            self?.spawnGhost()
+        // 开局准备倒计时
+        let countdownTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] timer in
+            Task { @MainActor in
+                guard let self = self, self.gameState == .playing else {
+                    timer.invalidate()
+                    return
+                }
+
+                if self.prepCountdown > 1 {
+                    self.prepCountdown -= 1
+                    self.lastEventText = "第 1 波将在 \(self.prepCountdown) 秒后到达"
+                } else {
+                    self.prepCountdown = 0
+                    self.spawnGhost()
+                    timer.invalidate()
+                }
+            }
         }
+        timers.append(countdownTimer)
         
         // 定期生成猛鬼
         let timer = Timer.scheduledTimer(withTimeInterval: GameConfig.ghostSpawnInterval, repeats: true) { [weak self] _ in
@@ -346,9 +372,11 @@ class GameEngine: ObservableObject {
     // MARK: - 游戏结束检查
     
     private func checkGameEnd() {
-        // 检查胜利条件（猛鬼死亡且达到一定波数）
-        if let ghost = ghost, ghost.state == .dead && waveNumber >= 5 {
-            // 可以继续下一波或胜利
+        guard let ghost = ghost else { return }
+
+        if ghost.state == .dead && waveNumber >= GameConfig.wavesToWin {
+            lastEventText = "你成功守住了 \(GameConfig.wavesToWin) 波进攻"
+            endGame(win: true)
         }
     }
     
@@ -459,11 +487,18 @@ class GameEngine: ObservableObject {
     }
     
     var currentWaveText: String {
-        ghost?.state == .dead ? "下一波准备中" : "第 \(max(waveNumber, 1)) 波"
+        if prepCountdown > 0 {
+            return "准备中"
+        }
+        return ghost?.state == .dead ? "下一波准备中" : "第 \(max(waveNumber, 1)) 波"
     }
 
     var defenseScoreText: String {
         let score = player.gold + room.doorLevel * 80 + room.bedLevel * 60 + room.turrets.count * 120 + room.traps.count * 40
         return "\(score)"
+    }
+
+    var victoryProgressText: String {
+        "\(min(waveNumber, GameConfig.wavesToWin))/\(GameConfig.wavesToWin) 波"
     }
 }
